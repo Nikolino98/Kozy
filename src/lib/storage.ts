@@ -44,8 +44,8 @@ export const uploadImage = async (
           transform: {
             width: 1200,
             height: 1200,
-            resize: 'contain',
-            format: 'webp',
+            resize: 'cover',
+            format: 'auto',
             quality: 90
           }
         });
@@ -154,10 +154,10 @@ export const getOptimizedImageUrl = (
     width?: number;
     height?: number;
     quality?: number;
-    format?: 'webp' | 'jpg' | 'png';
+    format?: 'auto' | 'webp' | 'jpg' | 'png';
   } = {}
 ): string => {
-  const { width = 400, height = 300, quality = 80, format = 'webp' } = options;
+  const { width = 400, height = 300, quality = 80, format = 'auto' } = options;
   
   const { data } = supabase.storage
     .from(bucket)
