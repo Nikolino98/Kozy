@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { X, Upload, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -38,12 +37,14 @@ const ImageUploadPreview = ({
       for (let i = 0; i < fileArray.length; i++) {
         const file = fileArray[i];
         
-        // Create preview
+        // Create preview from original file
         const previewUrl = await createImagePreview(file);
         previewUrls.push(previewUrl);
         
-        // Compress image
-        const compressedFile = await compressImage(file);
+        // Compress image with proper parameters
+        const compressedFile = await compressImage(file, 800, 600, 0.8);
+        console.log(`Original file size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+        console.log(`Compressed file size: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
         compressedFiles.push(compressedFile);
         
         // Update progress
@@ -141,7 +142,7 @@ const ImageUploadPreview = ({
               </Button>
               
               <div className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
-                {files?.[index]?.size ? (files[index].size / 1024 / 1024).toFixed(1) + 'MB' : ''}
+                {files?.[index]?.size ? (files[index].size / 1024 / 1024).toFixed(1) + 'MB' : 'Procesando...'}
               </div>
             </div>
           ))}
