@@ -144,7 +144,7 @@ const AdminLogin = ({ onLogin }: AdminLoginProps) => {
 
           {/* Demo credentials */}
           <div className="mt-6 p-4 bg-muted/50 rounded-xl">
-            <p className="text-xs text-muted-foreground text-center mb-2">
+            {/* <p className="text-xs text-muted-foreground text-center mb-2">
               <strong>Demo:</strong> Usuario: Nikoperez | Contraseña: prz425s275
             </p>
             <Button
@@ -156,7 +156,7 @@ const AdminLogin = ({ onLogin }: AdminLoginProps) => {
               className="w-full text-xs"
             >
               Actualizar Hash de Contraseña (Solo una vez)
-            </Button>
+            </Button> */}
           </div>
         </div>
       </div>
