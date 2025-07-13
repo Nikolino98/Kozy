@@ -33,95 +33,59 @@ const ImageUploadPreview = ({
       const fileArray = Array.from(selectedFiles).slice(0, maxFiles);
       const compressedFiles: File[] = [];
       const previewUrls: string[] = [];
+      const totalFiles = fileArray.length;
 
       for (let i = 0; i < fileArray.length; i++) {
         const file = fileArray[i];
         
         // Validar tamaño y tipo de archivo
         if (file.size > 10 * 1024 * 1024) {
-          toast({
-            title: "Error de archivo",
-            description: `${file.name} excede el tamaño máximo de 10MB`,
-            variant: "destructive"
-          });
-          continue;
+          throw new Error(`${file.name} excede el tamaño máximo de 10MB`);
         }
 
         if (!file.type.startsWith('image/')) {
-          toast({
-            title: "Error de archivo",
-            description: `${file.name} no es un archivo de imagen válido`,
-            variant: "destructive"
-          });
-          continue;
+          throw new Error(`${file.name} no es un archivo de imagen válido`);
         }
-        
+
         try {
-          // Crear preview
-          const previewUrl = await createImagePreview(file);
-          previewUrls.push(previewUrl);
-          
           // Comprimir imagen
-          const compressedFile = await compressImage(file, 1200, 1200, 0.9);
-          console.log(`Procesando ${file.name}:`);
-          console.log(`- Tamaño original: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
-          console.log(`- Tamaño comprimido: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+          const compressedFile = await compressImage(file);
           compressedFiles.push(compressedFile);
+
+          // Crear preview
+          const previewUrl = await createImagePreview(compressedFile);
+          previewUrls.push(previewUrl);
+
+          // Actualizar progreso
+          const currentProgress = ((i + 1) / totalFiles) * 100;
+          setProgress(currentProgress);
         } catch (error) {
           console.error(`Error procesando ${file.name}:`, error);
-          toast({
-            title: "Error de procesamiento",
-            description: `Error al procesar ${file.name}. Por favor, intenta con otra imagen.`,
-            variant: "destructive"
-          });
-          continue;
+          throw new Error(`Error al procesar ${file.name}: ${error.message}`);
         }
-        
-        // Actualizar progreso
-        setProgress(((i + 1) / fileArray.length) * 100);
       }
 
-      if (compressedFiles.length === 0) {
-        toast({
-          title: "Error",
-          description: "No se pudo procesar ninguna imagen. Por favor, intenta de nuevo.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Crear nuevo FileList
+      // Crear nuevo FileList con los archivos comprimidos
       const dt = new DataTransfer();
       compressedFiles.forEach(file => dt.items.add(file));
       
       setPreviews(previewUrls);
       onFilesChange(dt.files);
-      
-      if (compressedFiles.length < fileArray.length) {
-        toast({
-          title: "Advertencia",
-          description: `Se procesaron ${compressedFiles.length} de ${fileArray.length} imágenes.`,
-          variant: "warning"
-        });
-      } else {
-        toast({
-          title: "Éxito",
-          description: `Se procesaron ${compressedFiles.length} imágenes correctamente.`,
-          variant: "success"
-        });
-      }
     } catch (error) {
-      console.error('Error general procesando imágenes:', error);
+      console.error('Error en la selección de archivos:', error);
       toast({
-        title: "Error",
-        description: "Ocurrió un error al procesar las imágenes. Por favor, intenta de nuevo.",
-        variant: "destructive"
+        variant: "destructive",
+        title: "Error al procesar imágenes",
+        description: error.message
       });
+      
+      // Limpiar el input y los previews en caso de error
+      e.target.value = '';
+      setPreviews([]);
+      onFilesChange(null);
     } finally {
       setIsProcessing(false);
       setProgress(0);
-      // Limpiar el input para permitir seleccionar el mismo archivo
-      e.target.value = '';
     }
   };
 

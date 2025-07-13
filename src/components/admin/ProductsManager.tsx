@@ -105,82 +105,83 @@ const ProductsManager = () => {
     e.preventDefault();
     setIsSubmitting(true);
     setUploadProgress(0);
-
+  
     try {
+      if (!name || !price || !description || !category_id) {
+        throw new Error('Por favor, complete todos los campos requeridos');
+      }
+  
       let imageUrls = editingProduct?.images_urls || [];
-
+  
       // Upload new images with progress tracking
       if (imageFiles && imageFiles.length > 0) {
         const filesArray = Array.from(imageFiles);
         
         toast({
-          title: "Subiendo imágenes...",
+          title: "Procesando imágenes",
           description: "Comprimiendo y optimizando imágenes...",
         });
-        
-        // Delete old images if updating
-        if (editingProduct?.images_urls) {
-          for (const url of editingProduct.images_urls) {
-            await deleteImage(url, 'product-images');
+  
+        try {
+          // Delete old images if updating
+          if (editingProduct?.images_urls) {
+            await Promise.all(
+              editingProduct.images_urls.map(url => deleteImage(url))
+            );
+            imageUrls = [];
           }
+  
+          // Upload new images
+          const uploadedUrls = await uploadMultipleImages(
+            filesArray,
+            'product-images',
+            (progress) => setUploadProgress(progress)
+          );
+  
+          if (!uploadedUrls || uploadedUrls.length === 0) {
+            throw new Error('Error al subir las imágenes');
+          }
+  
+          imageUrls = uploadedUrls;
+        } catch (error) {
+          console.error('Error al procesar imágenes:', error);
+          throw new Error(`Error al procesar imágenes: ${error.message}`);
         }
-        
-        const uploadedUrls = await uploadMultipleImages(
-          filesArray, 
-          'product-images',
-          (completed, total) => {
-            const progress = (completed / total) * 100;
-            setUploadProgress(progress);
-          }
-        );
-        
-        imageUrls = uploadedUrls;
       }
-
-      // Preparar datos del producto con validaciones mejoradas
+  
       const productData = {
-        name: formData.name.trim(),
-        description: formData.description.trim(),
-        price: parseFloat(formData.price),
-        original_price: formData.original_price ? parseFloat(formData.original_price) : null,
-        category_id: formData.category_id || null,
-        stock: formData.stock ? parseInt(formData.stock) : 0,
-        rating: parseFloat(formData.rating),
-        reviews_count: parseInt(formData.reviews_count),
-        is_new: formData.is_new,
-        is_on_sale: formData.is_on_sale,
-        discount: formData.discount ? parseInt(formData.discount) : 0,
-        status: formData.status,
+        name,
+        price: Number(price),
+        description,
+        category_id,
         images_urls: imageUrls,
+        is_featured: featured,
+        is_published: published,
+        stock: Number(stock || 0)
       };
-
-      // Mostrar toast de guardado
-      toast({
-        title: "Guardando producto...",
-        description: "Procesando la información del producto.",
-      });
-
+  
       if (editingProduct) {
         await updateProduct(editingProduct.id, productData);
         toast({
-          title: "✅ Producto actualizado",
-          description: "El producto se ha actualizado correctamente.",
+          title: "Éxito",
+          description: "Producto actualizado correctamente",
         });
       } else {
         await createProduct(productData);
         toast({
-          title: "✅ Producto creado",
-          description: "El nuevo producto se ha creado correctamente.",
+          title: "Éxito",
+          description: "Producto creado correctamente",
         });
       }
-
-      handleCloseDialog();
+  
+      resetForm();
+      setIsDialogOpen(false);
     } catch (error) {
       console.error('Error al guardar producto:', error);
       toast({
-        title: "❌ Error",
-        description: "Ha ocurrido un error al guardar el producto.",
         variant: "destructive",
+        title: "Error",
+        description: error.message || "Ocurrió un error al guardar el producto"
       });
     } finally {
       setIsSubmitting(false);
