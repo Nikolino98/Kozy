@@ -60,7 +60,7 @@ const Footer = () => {
                 'Belleza', 
                 'Electrónicos', 
                 'Auriculares', 
-                'Bisutería', 
+                'Bijouterie', 
                 'Material Escolar',
                 'Arte y Craft'
               ].map((category) => (
@@ -129,7 +129,7 @@ const Footer = () => {
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="text-center md:text-left">
               <p className="text-muted-foreground text-sm">
-                © 2024 Kozy. Todos los derechos reservados.  <br/> NPM - Dandole vida a tus ideas
+                © 2025 Kozy. Todos los derechos reservados.  <br/> NPM - Dandole vida a tus ideas
               </p>
             </div>
             <div className="flex items-center space-x-1 text-muted-foreground text-sm">
