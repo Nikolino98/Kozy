@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -25,31 +24,16 @@ const LazyImage = ({
 }: LazyImageProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
-  const [imageSrc, setImageSrc] = useState(priority ? src : '');
+  const [imageSrc, setImageSrc] = useState(src); // Always start with src
   const imgRef = useRef<HTMLImageElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
-    if (priority) return;
-
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && !imageSrc) {
-            setImageSrc(src);
-            observerRef.current?.disconnect();
-          }
-        });
-      },
-      { threshold: 0.1, rootMargin: '50px' }
-    );
-
-    if (imgRef.current) {
-      observerRef.current.observe(imgRef.current);
-    }
-
-    return () => observerRef.current?.disconnect();
-  }, [src, imageSrc, priority]);
+    // Reset states when src changes
+    setIsLoading(true);
+    setIsError(false);
+    setImageSrc(src);
+  }, [src]);
 
   const handleLoad = () => {
     setIsLoading(false);
