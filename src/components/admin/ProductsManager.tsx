@@ -107,6 +107,9 @@ const ProductsManager = () => {
     setUploadProgress(0);
   
     try {
+      // Acceder a los valores del formData
+      const { name, price, description, category_id } = formData;
+  
       if (!name || !price || !description || !category_id) {
         throw new Error('Por favor, complete todos los campos requeridos');
       }
@@ -155,9 +158,13 @@ const ProductsManager = () => {
         description,
         category_id,
         images_urls: imageUrls,
-        is_featured: featured,
-        is_published: published,
-        stock: Number(stock || 0)
+        is_new: formData.is_new,
+        is_on_sale: formData.is_on_sale,
+        status: formData.status,
+        stock: Number(formData.stock || 0),
+        rating: Number(formData.rating || 5),
+        reviews_count: Number(formData.reviews_count || 0),
+        discount: Number(formData.discount || 0)
       };
   
       if (editingProduct) {
