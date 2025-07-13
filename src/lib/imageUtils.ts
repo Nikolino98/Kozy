@@ -2,9 +2,9 @@
 // Image compression and optimization utilities
 export const compressImage = async (
   file: File,
-  maxWidth: number = 800,
-  maxHeight: number = 600,
-  quality: number = 0.8
+  maxWidth: number = 1200,
+  maxHeight: number = 1200,
+  quality: number = 0.9
 ): Promise<File> => {
   return new Promise((resolve) => {
     const canvas = document.createElement('canvas');
@@ -26,21 +26,33 @@ export const compressImage = async (
       // Draw and compress
       ctx.drawImage(img, 0, 0, newWidth, newHeight);
       
+      // Mantener el formato original del archivo
+      const mimeType = file.type || 'image/jpeg';
+      
       canvas.toBlob(
         (blob) => {
           if (blob) {
             const compressedFile = new File([blob], file.name, {
-              type: 'image/jpeg',
+              type: mimeType,
               lastModified: Date.now(),
             });
+            console.log(`Compresión exitosa: ${file.name}`);
+            console.log(`Tamaño original: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+            console.log(`Tamaño comprimido: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
             resolve(compressedFile);
           } else {
+            console.warn(`No se pudo comprimir: ${file.name}, usando original`);
             resolve(file);
           }
         },
-        'image/jpeg',
+        mimeType,
         quality
       );
+    };
+    
+    img.onerror = () => {
+      console.error(`Error al cargar la imagen: ${file.name}`);
+      resolve(file);
     };
     
     img.src = URL.createObjectURL(file);

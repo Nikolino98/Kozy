@@ -14,43 +14,54 @@ export const uploadImage = async (
     try {
       const fileName = path || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${file.name}`;
       
-      console.log(`Uploading ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB) - Attempt ${attempt + 1}`);
+      console.log(`Iniciando subida de ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB) - Intento ${attempt + 1}`);
       
+      // Validar tamaño máximo permitido por Supabase (50MB)
+      if (file.size > 50 * 1024 * 1024) {
+        throw new Error(`El archivo ${file.name} excede el límite de 50MB permitido por Supabase`);
+      }
+
       const { data, error } = await supabase.storage
         .from(bucket)
         .upload(fileName, file, {
-          cacheControl: '31536000', // 1 year cache
+          cacheControl: '31536000',
           upsert: false,
           duplex: 'half'
         });
 
       if (error) {
-        console.error(`Upload attempt ${attempt + 1} failed:`, error);
+        console.error(`Error en intento ${attempt + 1}:`, error);
         if (attempt === maxRetries - 1) throw error;
         attempt++;
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
         continue;
       }
 
-      // Get optimized public URL with transformations
+      // Obtener URL optimizada con transformaciones
       const { data: urlData } = supabase.storage
         .from(bucket)
         .getPublicUrl(data.path, {
           transform: {
-            width: 800,
-            height: 600,
+            width: 1200,
+            height: 1200,
             resize: 'contain',
             format: 'webp',
-            quality: 85
+            quality: 90
           }
         });
 
-      console.log(`Successfully uploaded: ${fileName}`);
+      console.log(`Subida exitosa: ${fileName}`);
       return urlData.publicUrl;
     } catch (error) {
-      console.error(`Upload error on attempt ${attempt + 1}:`, error);
+      console.error(`Error en intento ${attempt + 1}:`, error);
+      
+      // Si es un error de tamaño de archivo, no reintentar
+      if (error instanceof Error && error.message.includes('excede el límite')) {
+        return null;
+      }
+      
       if (attempt === maxRetries - 1) {
-        console.error('Max retries reached, upload failed');
+        console.error('Se alcanzó el máximo de intentos, la subida falló');
         return null;
       }
       attempt++;
@@ -68,9 +79,9 @@ export const uploadMultipleImages = async (
 ): Promise<string[]> => {
   const results: string[] = [];
   
-  console.log(`Starting batch upload of ${files.length} images`);
+  console.log(`Iniciando subida por lotes de ${files.length} imágenes`);
   
-  // Upload in parallel with concurrency limit
+  // Subir en paralelo con límite de concurrencia
   const concurrencyLimit = 3;
   const batches: File[][] = [];
   
@@ -79,11 +90,13 @@ export const uploadMultipleImages = async (
   }
   
   let completed = 0;
+  let errors = 0;
   
   for (const batch of batches) {
     const batchPromises = batch.map(async (file) => {
       const url = await uploadImage(file, bucket);
       completed++;
+      if (!url) errors++;
       onProgress?.(completed, files.length);
       return url;
     });
@@ -92,7 +105,7 @@ export const uploadMultipleImages = async (
     results.push(...batchResults.filter(Boolean) as string[]);
   }
   
-  console.log(`Batch upload completed: ${results.length}/${files.length} successful`);
+  console.log(`Subida por lotes completada: ${results.length}/${files.length} exitosas, ${errors} errores`);
   return results;
 };
 

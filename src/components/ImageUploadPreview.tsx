@@ -37,31 +37,91 @@ const ImageUploadPreview = ({
       for (let i = 0; i < fileArray.length; i++) {
         const file = fileArray[i];
         
-        // Create preview from original file
-        const previewUrl = await createImagePreview(file);
-        previewUrls.push(previewUrl);
+        // Validar tamaño y tipo de archivo
+        if (file.size > 10 * 1024 * 1024) {
+          toast({
+            title: "Error de archivo",
+            description: `${file.name} excede el tamaño máximo de 10MB`,
+            variant: "destructive"
+          });
+          continue;
+        }
+
+        if (!file.type.startsWith('image/')) {
+          toast({
+            title: "Error de archivo",
+            description: `${file.name} no es un archivo de imagen válido`,
+            variant: "destructive"
+          });
+          continue;
+        }
         
-        // Compress image with proper parameters
-        const compressedFile = await compressImage(file, 800, 600, 0.8);
-        console.log(`Original file size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
-        console.log(`Compressed file size: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
-        compressedFiles.push(compressedFile);
+        try {
+          // Crear preview
+          const previewUrl = await createImagePreview(file);
+          previewUrls.push(previewUrl);
+          
+          // Comprimir imagen
+          const compressedFile = await compressImage(file, 1200, 1200, 0.9);
+          console.log(`Procesando ${file.name}:`);
+          console.log(`- Tamaño original: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+          console.log(`- Tamaño comprimido: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+          compressedFiles.push(compressedFile);
+        } catch (error) {
+          console.error(`Error procesando ${file.name}:`, error);
+          toast({
+            title: "Error de procesamiento",
+            description: `Error al procesar ${file.name}. Por favor, intenta con otra imagen.`,
+            variant: "destructive"
+          });
+          continue;
+        }
         
-        // Update progress
+        // Actualizar progreso
         setProgress(((i + 1) / fileArray.length) * 100);
       }
 
-      // Create new FileList with compressed files
+      if (compressedFiles.length === 0) {
+        toast({
+          title: "Error",
+          description: "No se pudo procesar ninguna imagen. Por favor, intenta de nuevo.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Crear nuevo FileList
       const dt = new DataTransfer();
       compressedFiles.forEach(file => dt.items.add(file));
       
       setPreviews(previewUrls);
       onFilesChange(dt.files);
+      
+      if (compressedFiles.length < fileArray.length) {
+        toast({
+          title: "Advertencia",
+          description: `Se procesaron ${compressedFiles.length} de ${fileArray.length} imágenes.`,
+          variant: "warning"
+        });
+      } else {
+        toast({
+          title: "Éxito",
+          description: `Se procesaron ${compressedFiles.length} imágenes correctamente.`,
+          variant: "success"
+        });
+      }
     } catch (error) {
-      console.error('Error processing images:', error);
+      console.error('Error general procesando imágenes:', error);
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al procesar las imágenes. Por favor, intenta de nuevo.",
+        variant: "destructive"
+      });
     } finally {
       setIsProcessing(false);
       setProgress(0);
+      // Limpiar el input para permitir seleccionar el mismo archivo
+      e.target.value = '';
     }
   };
 
